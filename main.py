@@ -12,8 +12,8 @@ state = {
     'soap_dispensed': False, 
     'current_score': 0  
 }
-state_lock = threading.Lock()
 
+last_state = state['current_state'] 
 
 # All flask routes defined here 
 @app.route('/get_data', methods=['POST'])
@@ -21,35 +21,26 @@ def get_data():
     data = request.get_json()
     
     # get all the data stored from the current session
-
     return jsonify({'message': 'success'})
 
 @app.route('/test', methods=['GET'])
 def test():
-    with state_lock:
-        current_state = state
+    # read from the last line of the file
+    with open('info.txt', 'r') as f:
+        lines = f.readlines()
+        last_line = lines[-1]
 
-    return jsonify({'message': current_state})
+    parsed = last_line.strip("\n").split(' ')
+    print("PARSED LAST LINE:", parsed)
 
+    active_game = parsed[0]
+    soap_dispensed = parsed[1]
 
+    state['current_state'] = active_game
+    state['soap_dispensed'] = soap_dispensed
+    last_state = state['current_state']
 
-# All serial logic present in this function
-def read_serial():
-    global state
-    while True:
-        # Simulate reading from serial and updating state
-        # read from serial 
-        
+    return jsonify({'message': state})
 
-        with state_lock:
-            state['scores'].append('data')
-            time.sleep(1) 
-
-def start_flask():
+if __name__ == '__main__': 
     app.run(port=5000, host='0.0.0.0')
-
-if __name__ == '__main__':
-    thread = threading.Thread(target=read_serial)
-    thread2 = threading.Thread(target=start_flask)
-    thread.start()
-    thread2.start()
